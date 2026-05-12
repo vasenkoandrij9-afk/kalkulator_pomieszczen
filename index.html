@@ -227,7 +227,10 @@ button:active{filter:brightness(.82);transform:scale(.97)}
     </div>
 
     <div class="card">
-      <div class="card-title">Dodaj ścianę</div>
+      <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+        Dodaj ścianę
+        <span id="next-wall-badge" style="background:var(--a);color:#0a1525;border-radius:8px;padding:2px 10px;font-size:14px;font-weight:900;letter-spacing:.05em">A</span>
+      </div>
       <div class="row2">
         <div>
           <label>Długość (cm)</label>
@@ -271,8 +274,16 @@ button:active{filter:brightness(.82);transform:scale(.97)}
       </div>
       <div class="hrow">
         <div>
-          <label>Cena (zł/m²)</label>
+          <label>Cena (zł)</label>
           <input type="number" id="workPriceWall" placeholder="0.00" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <div style="max-width:120px">
+          <label>Jednostka</label>
+          <select id="workUnitWall">
+            <option value="m2">zł/m²</option>
+            <option value="mb">zł/mb</option>
+            <option value="szt">zł/szt</option>
+          </select>
         </div>
         <button class="btn-a btn-sm" style="align-self:flex-end" onclick="addWork('wall')">+ Dodaj</button>
       </div>
@@ -359,8 +370,16 @@ button:active{filter:brightness(.82);transform:scale(.97)}
       </div>
       <div class="hrow">
         <div>
-          <label>Cena (zł/m²)</label>
+          <label>Cena (zł)</label>
           <input type="number" id="workPriceFloor" placeholder="0.00" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <div style="max-width:120px">
+          <label>Jednostka</label>
+          <select id="workUnitFloor">
+            <option value="m2">zł/m²</option>
+            <option value="mb">zł/mb</option>
+            <option value="szt">zł/szt</option>
+          </select>
         </div>
         <button class="btn-a btn-sm" style="align-self:flex-end" onclick="addWork('floor')">+ Dodaj</button>
       </div>
@@ -384,8 +403,16 @@ button:active{filter:brightness(.82);transform:scale(.97)}
       </div>
       <div class="hrow">
         <div>
-          <label>Cena (zł/m²)</label>
+          <label>Cena (zł)</label>
           <input type="number" id="workPriceCeil" placeholder="0.00" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <div style="max-width:120px">
+          <label>Jednostka</label>
+          <select id="workUnitCeil">
+            <option value="m2">zł/m²</option>
+            <option value="mb">zł/mb</option>
+            <option value="szt">zł/szt</option>
+          </select>
         </div>
         <button class="btn-a btn-sm" style="align-self:flex-end" onclick="addWork('ceil')">+ Dodaj</button>
       </div>
@@ -496,6 +523,15 @@ function countCorners(){
   return{inner,outer};
 }
 
+// ── Next wall badge ────────────────────────────────────────────
+function updateNextWallBadge(){
+  const badge=document.getElementById('next-wall-badge');
+  if(!badge) return;
+  // Count non-closing walls
+  const n=walls.filter(w=>!w.isClosing).length;
+  badge.textContent=String.fromCharCode(65+n);
+}
+
 // ── Close room ────────────────────────────────────────────────
 function closeRoom(){
   if(walls.length<2) return alert('Dodaj co najmniej 2 ściany przed zamknięciem.');
@@ -509,7 +545,7 @@ function closeRoom(){
   const btn=document.getElementById('btnClose');
   btn.textContent='🔓 Otwórz pokój';btn.onclick=openRoom;btn.className='btn-s btn-full';
   document.getElementById('gap-info').innerHTML='';
-  refreshWallWorks();render();updateWallList();
+  refreshWallWorks();render();updateWallList();updateNextWallBadge();
 }
 
 function openRoom(){
@@ -518,7 +554,7 @@ function openRoom(){
   if(!walls.length) document.getElementById('btnO').disabled=true;
   const btn=document.getElementById('btnClose');
   btn.textContent='🔒 Zamknij pokój';btn.onclick=closeRoom;btn.className='btn-g btn-full';
-  refreshWallWorks();render();updateWallList();updateGapInfo();
+  refreshWallWorks();render();updateWallList();updateGapInfo();updateNextWallBadge();
 }
 
 function updateGapInfo(){
@@ -548,7 +584,7 @@ function addWall(){
   document.getElementById('btnO').disabled=false;
   document.getElementById('opening-wall-hint').style.display='none';
   document.getElementById('wallNote').value='';
-  refreshWallWorks();render();updateWallList();updateGapInfo();
+  refreshWallWorks();render();updateWallList();updateGapInfo();updateNextWallBadge();
   // flash feedback
   const wl=document.getElementById('wall-list');
   wl.firstChild&&wl.firstChild.classList.add('flash');
@@ -563,7 +599,7 @@ function undoWall(){
     document.getElementById('btnUndoO').disabled=true;
     document.getElementById('opening-wall-hint').style.display='block';
   }
-  refreshWallWorks();render();updateWallList();updateGapInfo();
+  refreshWallWorks();render();updateWallList();updateGapInfo();updateNextWallBadge();
 }
 
 // ── Openings ──────────────────────────────────────────────────
@@ -604,25 +640,52 @@ function addWork(zone){
   const Z=zone[0].toUpperCase()+zone.slice(1);
   const sel=document.getElementById('workType'+Z);
   const price=parseFloat(document.getElementById('workPrice'+Z).value);
-  if(isNaN(price)||price<0) return alert('Podaj cenę za m²');
+  const unit=document.getElementById('workUnit'+Z)?.value||'m2';
+  if(isNaN(price)||price<0) return alert('Podaj cenę');
   const name=sel.value==='_custom'
     ?(document.getElementById('customWorkName'+Z).value.trim()||'Inna praca')
     :sel.value;
+
+  // For mb and szt, ask for quantity now
+  let qty=null;
+  if(unit==='mb'||unit==='szt'){
+    const unitLabel=unit==='mb'?'mb':'szt';
+    const raw=prompt('Podaj ilość ('+unitLabel+') dla: '+name,'1');
+    if(raw===null) return; // cancelled
+    qty=parseFloat(raw);
+    if(isNaN(qty)||qty<=0) return alert('Podaj poprawną ilość');
+  }
+
   let arr;
   if(zone==='wall'){
     if(!walls.length) return alert('Najpierw dodaj ścianę');
     arr=walls[walls.length-1].works;
   } else if(zone==='floor') arr=floorWorks;
   else arr=ceilWorks;
+
   const idx=arr.findIndex(wr=>wr.name===name);
-  if(idx>=0) arr[idx].price=price; else arr.push({name,price});
+  const entry={name,price,unit,qty};
+  if(idx>=0) arr[idx]=entry; else arr.push(entry);
+
   document.getElementById('workPrice'+Z).value='';
   document.getElementById('customWorkName'+Z).value='';
   document.getElementById('customWorkRow'+Z).style.display='none';
   sel.selectedIndex=0;
+  if(document.getElementById('workUnit'+Z)) document.getElementById('workUnit'+Z).selectedIndex=0;
+
   if(zone==='wall'){refreshWallWorks();updateWallList();}
   else if(zone==='floor') refreshSimpleWorks('floor');
   else refreshSimpleWorks('ceil');
+}
+
+const UNIT_LABEL={m2:'zł/m²',mb:'zł/mb',szt:'zł/szt'};
+
+function workDisplay(wr){
+  const ul=UNIT_LABEL[wr.unit||'m2'];
+  if((wr.unit==='mb'||wr.unit==='szt')&&wr.qty!=null){
+    return wr.price+' '+ul+' × '+wr.qty+(wr.unit==='mb'?' mb':' szt');
+  }
+  return wr.price+' '+ul;
 }
 
 function removeWork(zone,arrIdx,workIdx){
@@ -640,7 +703,7 @@ function refreshWallWorks(){
   el.innerHTML=wall.works.map((wr,wi)=>
     '<div class="work-item">'+
       '<span class="work-name">'+wr.name+'</span>'+
-      '<span class="work-price">'+wr.price+' zł/m²</span>'+
+      '<span class="work-price">'+workDisplay(wr)+'</span>'+
       '<button class="btn-r btn-xs" onclick="removeWork(\'wall\','+(walls.length-1)+','+wi+')">✕</button>'+
     '</div>'
   ).join('');
@@ -653,7 +716,7 @@ function refreshSimpleWorks(zone){
   el.innerHTML=arr.map((wr,wi)=>
     '<div class="work-item">'+
       '<span class="work-name">'+wr.name+'</span>'+
-      '<span class="work-price">'+wr.price+' zł/m²</span>'+
+      '<span class="work-price">'+workDisplay(wr)+'</span>'+
       '<button class="btn-r btn-xs" onclick="removeWork(\''+zone+'\',-1,'+wi+')">✕</button>'+
     '</div>'
   ).join('');
