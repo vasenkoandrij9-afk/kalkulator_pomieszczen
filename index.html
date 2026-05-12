@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Smart Reno PRO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ── Reset & tokens ─────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --a:#4fc3f7;--a2:#0288d1;
+  --bg:#16191f;--surf:#1e2228;--surf2:#252b33;--border:#2e3540;
+  --txt:#e8eaf0;--txt2:#8a9bb0;
+  --green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;--purple:#9b59b6;
+  --r:14px;--r-sm:10px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  font-size:16px;overflow:hidden}
+
+/* ── Shell ──────────────────────────────────────────────────── */
+body{display:flex;flex-direction:column}
+
+/* Top bar */
+#topbar{
+  background:var(--surf);
+  padding:12px 16px calc(12px + env(safe-area-inset-top,0px)) 16px;
+  padding-top:calc(12px + env(safe-area-inset-top,0px));
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+#topbar h1{font-size:17px;font-weight:800;color:var(--a);white-space:nowrap;letter-spacing:-.3px}
+#topbar input{
+  flex:1;min-width:0;background:var(--surf2);border:1.5px solid var(--border);
+  border-radius:var(--r-sm);color:var(--txt);padding:9px 12px;font-size:15px;
+}
+#topbar input:focus{outline:none;border-color:var(--a)}
+
+/* Bottom nav */
+#nav{
+  display:flex;background:var(--surf);
+  border-top:1px solid var(--border);flex-shrink:0;
+  padding-bottom:max(var(--safe-b),8px);
+  box-shadow:0 -2px 16px rgba(0,0,0,.35);
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  gap:3px;padding:10px 4px 6px;cursor:pointer;
+  color:var(--txt2);font-size:10px;font-weight:600;letter-spacing:.03em;
+  border:none;background:none;transition:color .15s;
+  touch-action:manipulation;
+}
+.nav-btn .ic{font-size:22px;line-height:1}
+.nav-btn.active{color:var(--a)}
+.nav-btn.active .ic{filter:drop-shadow(0 0 6px var(--a))}
+
+/* Screens */
+#screens{flex:1;overflow:hidden;position:relative}
+.screen{
+  position:absolute;inset:0;overflow-y:auto;
+  padding:14px 14px 90px;
+  display:flex;flex-direction:column;gap:12px;
+  opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .18s,transform .18s;
+}
+.screen.active{opacity:1;pointer-events:all;transform:none}
+#screen-sketch{padding:0;background:#f0f2f5}
+#screen-sketch svg{width:100%;height:100%;display:block}
+
+/* Cards */
+.card{
+  background:var(--surf);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.card-title{
+  font-size:12px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--a);
+}
+
+/* Form */
+label{font-size:12px;color:var(--txt2);font-weight:600;letter-spacing:.03em;display:block;margin-bottom:4px}
+input[type=number],input[type=text],select{
+  width:100%;background:var(--surf2);border:1.5px solid var(--border);
+  border-radius:var(--r-sm);color:var(--txt);padding:13px 14px;
+  font-size:16px;-webkit-appearance:none;appearance:none;
+  transition:border-color .15s;
+}
+input:focus,select:focus{outline:none;border-color:var(--a)}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M0 0l7 9 7-9z' fill='%238a9bb0'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+
+/* Rows */
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.hrow{display:flex;gap:8px;align-items:flex-end}
+.hrow > *{flex:1}
+
+/* Buttons */
+button{
+  border:none;border-radius:var(--r-sm);cursor:pointer;font-weight:700;
+  font-size:15px;padding:14px 16px;touch-action:manipulation;
+  letter-spacing:.01em;transition:filter .1s,transform .08s;
+}
+button:active{filter:brightness(.82);transform:scale(.97)}
+.btn-a{background:var(--a);color:#0a1525}
+.btn-g{background:var(--green);color:#fff}
+.btn-r{background:var(--red);color:#fff}
+.btn-y{background:var(--yellow);color:#1a1000}
+.btn-s{background:var(--surf2);border:1.5px solid var(--border);color:var(--txt)}
+.btn-sm{padding:10px 14px;font-size:13px}
+.btn-xs{padding:7px 10px;font-size:12px}
+.btn-full{width:100%}
+.btn-icon{padding:13px;font-size:18px;min-width:50px;text-align:center}
+
+/* Status pill */
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:20px;font-size:12px;font-weight:700;
+}
+.pill-orange{background:rgba(243,156,18,.15);color:var(--yellow);border:1px solid rgba(243,156,18,.3)}
+.pill-green{background:rgba(46,204,113,.15);color:var(--green);border:1px solid rgba(46,204,113,.3)}
+
+/* Wall chips */
+.wall-chip{
+  background:var(--surf2);border:1.5px solid var(--border);
+  border-radius:var(--r-sm);padding:10px 12px;
+  display:flex;flex-direction:column;gap:5px;
+}
+.wall-chip.closing{border-color:rgba(46,204,113,.5);background:rgba(46,204,113,.05)}
+.wc-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.wc-name{font-weight:700;font-size:14px;color:var(--a)}
+.wc-len{font-size:13px;color:var(--txt2)}
+.tag{
+  display:inline-block;background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:3px 8px;font-size:11px;color:var(--txt2);
+  margin:2px 2px 0 0;line-height:1.5;
+}
+
+/* Work rows */
+.work-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 0;border-bottom:1px solid var(--border);
+}
+.work-item:last-child{border-bottom:none}
+.work-name{flex:1;font-size:14px}
+.work-price{font-size:13px;color:var(--txt2);white-space:nowrap}
+
+/* Results */
+#results-modal{
+  position:fixed;inset:0;background:var(--bg);z-index:300;
+  display:none;flex-direction:column;
+}
+#res-scroll{flex:1;overflow-y:auto;padding:16px}
+.res-bar{
+  background:var(--surf);border-top:1px solid var(--border);
+  padding:12px 16px;padding-bottom:max(var(--safe-b),12px);
+  display:flex;gap:10px;flex-shrink:0;
+}
+.ri{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:1px solid var(--border);padding:11px 0;gap:8px;
+}
+.ri span{color:var(--txt2);flex:1;font-size:14px;line-height:1.4}
+.ri b{font-size:14px;white-space:nowrap;text-align:right}
+.rs{
+  font-size:11px;font-weight:700;text-transform:uppercase;
+  color:var(--a);letter-spacing:.06em;padding-top:16px;padding-bottom:4px;
+}
+.total-row{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:8px;background:rgba(46,204,113,.1);
+  border:1px solid rgba(46,204,113,.25);border-radius:var(--r-sm);
+  padding:14px 16px;
+}
+
+/* FAB */
+#fab{
+  position:fixed;bottom:calc(72px + max(var(--safe-b),8px) + 14px);right:16px;
+  z-index:200;background:var(--green);color:#fff;border:none;
+  border-radius:28px;padding:15px 22px;font-size:15px;font-weight:800;
+  box-shadow:0 4px 24px rgba(46,204,113,.45);touch-action:manipulation;
+  display:flex;align-items:center;gap:8px;
+}
+#fab:active{filter:brightness(.85);transform:scale(.96)}
+
+/* PDF hidden */
+#pdf-render-box{position:fixed;left:-9999px;width:780px;background:#fff;color:#111;padding:40px;font-family:system-ui,sans-serif}
+.pdf-row{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:7px 0;font-size:14px;gap:8px;flex-wrap:wrap}
+.pdf-section{font-size:11px;text-transform:uppercase;color:#666;letter-spacing:.05em;padding-top:10px;padding-bottom:2px;font-weight:700}
+
+/* Divider */
+.divider{height:1px;background:var(--border);margin:2px 0}
+
+/* Highlight on add */
+@keyframes flashIn{0%{background:rgba(79,195,247,.15)}100%{background:transparent}}
+.flash{animation:flashIn .6s ease}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <h1>🏠 Reno</h1>
+  <input type="text" id="roomName" value="Pomieszczenie 1" onfocus="this.select()" placeholder="Nazwa obiektu / pokoju">
+</div>
+
+<!-- SCREENS -->
+<div id="screens">
+
+  <!-- ① ŚCIANY -->
+  <div class="screen active" id="screen-walls">
+
+    <div class="card">
+      <div class="card-title">Wysokość sufitu</div>
+      <div class="hrow">
+        <div>
+          <label>Wysokość (cm)</label>
+          <input type="number" id="h" value="270" min="1" onfocus="this.select()" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dodaj ścianę</div>
+      <div class="row2">
+        <div>
+          <label>Długość (cm)</label>
+          <input type="number" id="L" value="400" min="1" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <div>
+          <label>Kąt między ścianami (°)</label>
+          <input type="number" id="A" value="90" min="1" max="359" onfocus="this.select()" inputmode="decimal">
+        </div>
+      </div>
+      <div>
+        <label>Notatka do ściany</label>
+        <input type="text" id="wallNote" placeholder="np. cegła, GKL, zewnętrzna…" onfocus="this.select()">
+      </div>
+      <div class="hrow">
+        <button class="btn-a" onclick="addWall()">+ Ściana</button>
+        <button class="btn-s btn-icon" onclick="undoWall()" title="Cofnij">↩</button>
+      </div>
+      <div id="close-room-row" style="display:none">
+        <div id="gap-info" style="margin-bottom:8px;text-align:center"></div>
+        <button id="btnClose" class="btn-g btn-full" onclick="closeRoom()">🔒 Zamknij pokój</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Prace na ostatniej ścianie</div>
+      <div id="works-list-wall"><div style="font-size:13px;color:var(--txt2)">Najpierw dodaj ścianę</div></div>
+      <div class="divider"></div>
+      <div>
+        <label>Rodzaj pracy</label>
+        <select id="workTypeWall" onchange="toggleCustomWork('Wall',this)">
+          <option>Szpachlowanie</option><option>Malowanie</option><option>Tynkowanie</option>
+          <option>Płytki</option><option>Tapety</option><option>Gruntowanie</option>
+          <option>Zbrojenie siatką</option><option>Montaż GKL</option><option>Klej styropian</option>
+          <option value="_custom">✏️ Inne…</option>
+        </select>
+      </div>
+      <div id="customWorkRowWall" style="display:none">
+        <label>Nazwa własna</label>
+        <input type="text" id="customWorkNameWall" placeholder="Nazwa pracy" onfocus="this.select()">
+      </div>
+      <div class="hrow">
+        <div>
+          <label>Cena (zł/m²)</label>
+          <input type="number" id="workPriceWall" placeholder="0.00" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <button class="btn-a btn-sm" style="align-self:flex-end" onclick="addWork('wall')">+ Dodaj</button>
+      </div>
+    </div>
+
+    <!-- List of all walls -->
+    <div id="wall-list" style="display:flex;flex-direction:column;gap:8px;padding-bottom:4px"></div>
+  </div>
+
+  <!-- ② OTWORY -->
+  <div class="screen" id="screen-openings">
+    <div class="card">
+      <div class="card-title">Dodaj otwór do ostatniej ściany</div>
+      <div class="row2">
+        <div>
+          <label>Szerokość (cm)</label>
+          <input type="number" id="oW" value="90" min="1" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <div>
+          <label>Wysokość (cm)</label>
+          <input type="number" id="oH" value="210" min="1" onfocus="this.select()" inputmode="decimal">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>Próg od podłogi (cm)</label>
+          <input type="number" id="oB" value="0" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <div>
+          <label>Odstęp od narożnika (cm)</label>
+          <input type="number" id="oOff" value="50" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label>Zagłębienie / ościeże (cm)</label>
+          <input type="number" id="oDepth" value="0" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <div>
+          <label>Cena ościeży (zł/mb)</label>
+          <input type="number" id="oSlopePrice" value="0" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+      </div>
+      <div>
+        <label>Typ otworu</label>
+        <select id="oType">
+          <option value="door">🚪 Drzwi</option>
+          <option value="window">🪟 Okno</option>
+          <option value="arch">⌒ Łuk</option>
+          <option value="other">⬜ Inne</option>
+        </select>
+      </div>
+      <div>
+        <label>Notatka</label>
+        <input type="text" id="oNote" placeholder="np. PVC, drewno, wymiar ramy…" onfocus="this.select()">
+      </div>
+      <div class="hrow">
+        <button id="btnO" class="btn-y" onclick="addOpening()" disabled>+ Otwór</button>
+        <button id="btnUndoO" class="btn-r btn-icon" onclick="undoOpening()" disabled title="Cofnij otwór">↩</button>
+      </div>
+    </div>
+    <div id="opening-wall-hint" style="text-align:center;font-size:13px;color:var(--txt2);padding:4px 0">
+      Dodaj najpierw ścianę w zakładce Ściany
+    </div>
+  </div>
+
+  <!-- ③ PRACE -->
+  <div class="screen" id="screen-works">
+    <div class="card">
+      <div class="card-title">🟫 Prace na podłodze</div>
+      <div id="works-list-floor"><div style="font-size:13px;color:var(--txt2)">Brak</div></div>
+      <div class="divider"></div>
+      <div>
+        <label>Rodzaj pracy</label>
+        <select id="workTypeFloor" onchange="toggleCustomWork('Floor',this)">
+          <option>Wylewka</option><option>Płytki</option><option>Panele</option>
+          <option>Parkiet</option><option>Wykładzina</option><option>Gruntowanie</option>
+          <option value="_custom">✏️ Inne…</option>
+        </select>
+      </div>
+      <div id="customWorkRowFloor" style="display:none">
+        <label>Nazwa własna</label>
+        <input type="text" id="customWorkNameFloor" placeholder="Nazwa pracy" onfocus="this.select()">
+      </div>
+      <div class="hrow">
+        <div>
+          <label>Cena (zł/m²)</label>
+          <input type="number" id="workPriceFloor" placeholder="0.00" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <button class="btn-a btn-sm" style="align-self:flex-end" onclick="addWork('floor')">+ Dodaj</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⬜ Prace na suficie</div>
+      <div id="works-list-ceil"><div style="font-size:13px;color:var(--txt2)">Brak</div></div>
+      <div class="divider"></div>
+      <div>
+        <label>Rodzaj pracy</label>
+        <select id="workTypeCeil" onchange="toggleCustomWork('Ceil',this)">
+          <option>Szpachlowanie</option><option>Malowanie</option><option>Sufity podwieszane</option>
+          <option>Gruntowanie</option><option>Tynkowanie</option>
+          <option value="_custom">✏️ Inne…</option>
+        </select>
+      </div>
+      <div id="customWorkRowCeil" style="display:none">
+        <label>Nazwa własna</label>
+        <input type="text" id="customWorkNameCeil" placeholder="Nazwa pracy" onfocus="this.select()">
+      </div>
+      <div class="hrow">
+        <div>
+          <label>Cena (zł/m²)</label>
+          <input type="number" id="workPriceCeil" placeholder="0.00" min="0" onfocus="this.select()" inputmode="decimal">
+        </div>
+        <button class="btn-a btn-sm" style="align-self:flex-end" onclick="addWork('ceil')">+ Dodaj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ SZKIC -->
+  <div class="screen" id="screen-sketch">
+    <svg id="svg" viewBox="0 0 500 500"><g id="draw"></g></svg>
+  </div>
+
+</div><!-- /screens -->
+
+<!-- BOTTOM NAV -->
+<nav id="nav">
+  <button class="nav-btn active" id="nb-walls" onclick="switchScreen('walls')">
+    <span class="ic">🧱</span>Ściany
+  </button>
+  <button class="nav-btn" id="nb-openings" onclick="switchScreen('openings')">
+    <span class="ic">🚪</span>Otwory
+  </button>
+  <button class="nav-btn" id="nb-works" onclick="switchScreen('works')">
+    <span class="ic">💼</span>Prace
+  </button>
+  <button class="nav-btn" id="nb-sketch" onclick="switchScreen('sketch')">
+    <span class="ic">📐</span>Szkic
+  </button>
+</nav>
+
+<!-- FAB -->
+<button id="fab" onclick="calculateAll()">
+  <span>📊</span> Oblicz
+</button>
+
+<!-- RESULTS OVERLAY -->
+<div id="results-modal">
+  <div id="res-scroll">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h2 id="resTitle" style="color:var(--a);font-size:19px;font-weight:800"></h2>
+      <button class="btn-s btn-sm" onclick="document.getElementById('results-modal').style.display='none'">✕</button>
+    </div>
+    <div id="res-content"></div>
+  </div>
+  <div class="res-bar">
+    <button class="btn-a" style="flex:1" onclick="exportPDF()">⬇ PDF</button>
+    <button class="btn-s" style="flex:1" onclick="document.getElementById('results-modal').style.display='none'">← Wróć</button>
+  </div>
+</div>
+
+<!-- PDF hidden zone -->
+<div id="pdf-render-box">
+  <h1 id="p-title" style="margin-bottom:4px;font-size:22px"></h1>
+  <div id="p-subtitle" style="color:#666;font-size:13px;margin-bottom:14px"></div>
+  <div id="p-canvas-slot" style="margin:14px 0;border:1px solid #eee;text-align:center"></div>
+  <div id="p-data-slot"></div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+let walls = [];
+let floorWorks = [];
+let ceilWorks  = [];
+
+const drawGroup = document.getElementById('draw');
+const svgEl     = document.getElementById('svg');
+const TYPE_LABEL = {door:'Drzwi', window:'Okno', arch:'Łuk', other:'Inne'};
+const TYPE_ICON  = {door:'🚪', window:'🪟', arch:'⌒', other:'⬜'};
+
+// ── Navigation ─────────────────────────────────────────────────
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('nb-'+name).classList.add('active');
+  if (name==='sketch') render();
+}
+
+// ── Geometry ──────────────────────────────────────────────────
+function buildPoints() {
+  let pts=[{x:0,y:0}], curAngle=0;
+  walls.forEach((w,i)=>{
+    if(w.isClosing){pts.push({x:0,y:0});return;}
+    if(i>0) curAngle-=(180-w.angle);
+    const rad=curAngle*Math.PI/180;
+    const prev=pts[pts.length-1];
+    pts.push({x:prev.x+w.length*Math.cos(rad), y:prev.y+w.length*Math.sin(rad)});
+  });
+  return pts;
+}
+
+function shoelaceArea(pts){
+  let a=0;
+  for(let i=0;i<pts.length-1;i++) a+=pts[i].x*pts[i+1].y-pts[i+1].x*pts[i].y;
+  return Math.abs(a)/2;
+}
+
+function slopeLengthM(o){
+  if(!o.depth||o.depth<=0) return 0;
+  return 2*o.h/100 + o.w/100 + (o.b>0?o.w/100:0);
+}
+
+function countCorners(){
+  let inner=0,outer=0;
+  for(let i=1;i<walls.length;i++){
+    if(walls[i].isClosing) continue;
+    walls[i].angle<180?inner++:outer++;
+  }
+  return{inner,outer};
+}
+
+// ── Close room ────────────────────────────────────────────────
+function closeRoom(){
+  if(walls.length<2) return alert('Dodaj co najmniej 2 ściany przed zamknięciem.');
+  if(walls[walls.length-1].isClosing) return;
+  const pts=buildPoints();
+  const last=pts[pts.length-1];
+  const dist=Math.sqrt(last.x*last.x+last.y*last.y);
+  if(dist<0.5){alert('Kontur jest już zamknięty (różnica < 0.5 cm).');return;}
+  walls.push({length:Math.round(dist*10)/10,angle:90,note:'Ściana domykająca (auto)',openings:[],works:[],isClosing:true});
+  document.getElementById('btnO').disabled=false;
+  const btn=document.getElementById('btnClose');
+  btn.textContent='🔓 Otwórz pokój';btn.onclick=openRoom;btn.className='btn-s btn-full';
+  document.getElementById('gap-info').innerHTML='';
+  refreshWallWorks();render();updateWallList();
+}
+
+function openRoom(){
+  if(!walls.length||!walls[walls.length-1].isClosing) return;
+  walls.pop();
+  if(!walls.length) document.getElementById('btnO').disabled=true;
+  const btn=document.getElementById('btnClose');
+  btn.textContent='🔒 Zamknij pokój';btn.onclick=closeRoom;btn.className='btn-g btn-full';
+  refreshWallWorks();render();updateWallList();updateGapInfo();
+}
+
+function updateGapInfo(){
+  const row=document.getElementById('close-room-row');
+  if(walls.length<2){row.style.display='none';return;}
+  if(walls[walls.length-1].isClosing){row.style.display='block';return;}
+  row.style.display='block';
+  const pts=buildPoints(), last=pts[pts.length-1];
+  const dist=Math.sqrt(last.x*last.x+last.y*last.y);
+  const el=document.getElementById('gap-info');
+  if(dist<0.5){
+    el.innerHTML='<span class="pill pill-green">✅ Kontur zamknięty</span>';
+  } else {
+    el.innerHTML='<span class="pill pill-orange">⚡ Brakuje '+( dist/100).toFixed(2)+' mb do ściany A</span>';
+  }
+}
+
+// ── Walls ─────────────────────────────────────────────────────
+function addWall(){
+  if(walls.length&&walls[walls.length-1].isClosing)
+    return alert('Pokój jest zamknięty. Najpierw otwórz kontur.');
+  const length=parseFloat(document.getElementById('L').value);
+  const angle=parseFloat(document.getElementById('A').value);
+  const note=document.getElementById('wallNote').value.trim();
+  if(!length||length<=0) return alert('Podaj poprawną długość ściany');
+  walls.push({length,angle,note,openings:[],works:[]});
+  document.getElementById('btnO').disabled=false;
+  document.getElementById('opening-wall-hint').style.display='none';
+  document.getElementById('wallNote').value='';
+  refreshWallWorks();render();updateWallList();updateGapInfo();
+  // flash feedback
+  const wl=document.getElementById('wall-list');
+  wl.firstChild&&wl.firstChild.classList.add('flash');
+}
+
+function undoWall(){
+  if(!walls.length) return;
+  if(walls[walls.length-1].isClosing){openRoom();return;}
+  walls.pop();
+  if(!walls.length){
+    document.getElementById('btnO').disabled=true;
+    document.getElementById('btnUndoO').disabled=true;
+    document.getElementById('opening-wall-hint').style.display='block';
+  }
+  refreshWallWorks();render();updateWallList();updateGapInfo();
+}
+
+// ── Openings ──────────────────────────────────────────────────
+function addOpening(){
+  if(!walls.length) return;
+  const w=parseFloat(document.getElementById('oW').value);
+  const h=parseFloat(document.getElementById('oH').value);
+  const b=parseFloat(document.getElementById('oB').value)||0;
+  const off=parseFloat(document.getElementById('oOff').value)||0;
+  const depth=parseFloat(document.getElementById('oDepth').value)||0;
+  const slopePrice=parseFloat(document.getElementById('oSlopePrice').value)||0;
+  const type=document.getElementById('oType').value;
+  const note=document.getElementById('oNote').value.trim();
+  const wall=walls[walls.length-1];
+  if(!w||!h||w<=0||h<=0) return alert('Podaj poprawne wymiary otworu');
+  if(off<0||off+w>wall.length) return alert('Otwór wychodzi poza ścianę! (offset '+off+' + szer. '+w+' > dł. ściany '+wall.length+')');
+  wall.openings.push({w,h,b,off,depth,slopePrice,type,note});
+  document.getElementById('btnUndoO').disabled=false;
+  document.getElementById('oNote').value='';
+  render();updateWallList();
+}
+
+function undoOpening(){
+  if(!walls.length) return;
+  const wall=walls[walls.length-1];
+  if(!wall.openings.length) return;
+  wall.openings.pop();
+  if(!wall.openings.length) document.getElementById('btnUndoO').disabled=true;
+  render();updateWallList();
+}
+
+// ── Works ─────────────────────────────────────────────────────
+function toggleCustomWork(zone,sel){
+  document.getElementById('customWorkRow'+zone).style.display=sel.value==='_custom'?'block':'none';
+}
+
+function addWork(zone){
+  const Z=zone[0].toUpperCase()+zone.slice(1);
+  const sel=document.getElementById('workType'+Z);
+  const price=parseFloat(document.getElementById('workPrice'+Z).value);
+  if(isNaN(price)||price<0) return alert('Podaj cenę za m²');
+  const name=sel.value==='_custom'
+    ?(document.getElementById('customWorkName'+Z).value.trim()||'Inna praca')
+    :sel.value;
+  let arr;
+  if(zone==='wall'){
+    if(!walls.length) return alert('Najpierw dodaj ścianę');
+    arr=walls[walls.length-1].works;
+  } else if(zone==='floor') arr=floorWorks;
+  else arr=ceilWorks;
+  const idx=arr.findIndex(wr=>wr.name===name);
+  if(idx>=0) arr[idx].price=price; else arr.push({name,price});
+  document.getElementById('workPrice'+Z).value='';
+  document.getElementById('customWorkName'+Z).value='';
+  document.getElementById('customWorkRow'+Z).style.display='none';
+  sel.selectedIndex=0;
+  if(zone==='wall'){refreshWallWorks();updateWallList();}
+  else if(zone==='floor') refreshSimpleWorks('floor');
+  else refreshSimpleWorks('ceil');
+}
+
+function removeWork(zone,arrIdx,workIdx){
+  if(zone==='wall'){walls[arrIdx].works.splice(workIdx,1);refreshWallWorks();updateWallList();}
+  else if(zone==='floor'){floorWorks.splice(workIdx,1);refreshSimpleWorks('floor');}
+  else{ceilWorks.splice(workIdx,1);refreshSimpleWorks('ceil');}
+}
+
+function refreshWallWorks(){
+  const el=document.getElementById('works-list-wall');
+  if(!walls.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2)">Najpierw dodaj ścianę</div>';return;}
+  const wall=walls[walls.length-1];
+  const lbl=String.fromCharCode(65+walls.length-1);
+  if(!wall.works.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2)">Brak prac — ściana '+lbl+'</div>';return;}
+  el.innerHTML=wall.works.map((wr,wi)=>
+    '<div class="work-item">'+
+      '<span class="work-name">'+wr.name+'</span>'+
+      '<span class="work-price">'+wr.price+' zł/m²</span>'+
+      '<button class="btn-r btn-xs" onclick="removeWork(\'wall\','+(walls.length-1)+','+wi+')">✕</button>'+
+    '</div>'
+  ).join('');
+}
+
+function refreshSimpleWorks(zone){
+  const arr=zone==='floor'?floorWorks:ceilWorks;
+  const el=document.getElementById('works-list-'+zone);
+  if(!arr.length){el.innerHTML='<div style="font-size:13px;color:var(--txt2)">Brak</div>';return;}
+  el.innerHTML=arr.map((wr,wi)=>
+    '<div class="work-item">'+
+      '<span class="work-name">'+wr.name+'</span>'+
+      '<span class="work-price">'+wr.price+' zł/m²</span>'+
+      '<button class="btn-r btn-xs" onclick="removeWork(\''+zone+'\',-1,'+wi+')">✕</button>'+
+    '</div>'
+  ).join('');
+}
+
+// ── Wall list ─────────────────────────────────────────────────
+function updateWallList(){
+  const el=document.getElementById('wall-list');
+  if(!walls.length){el.innerHTML='';return;}
+  const pts=buildPoints();
+  el.innerHTML=walls.map((w,i)=>{
+    const lbl=String.fromCharCode(65+i);
+    const displayLen=w.isClosing
+      ?(()=>{const p1=pts[i],p2=pts[i+1];return Math.round(Math.sqrt((p2.x-p1.x)**2+(p2.y-p1.y)**2)*10)/10;})()
+      :w.length;
+    const opens=w.openings.map(o=>
+      '<span class="tag">'+(TYPE_ICON[o.type]||'')+'&thinsp;'+o.w+'×'+o.h+'cm'+
+      (o.depth?' oscieze:'+o.depth+'cm':'')+
+      (o.note?' — '+o.note:'')+
+      '</span>'
+    ).join('');
+    const wrks=w.works.map(wr=>
+      '<span class="tag" style="color:var(--yellow)">'+wr.name+' '+wr.price+'zł/m²</span>'
+    ).join('');
+    return '<div class="wall-chip'+(w.isClosing?' closing':'')+'">'+
+      '<div class="wc-head">'+
+        '<span class="wc-name">'+lbl+(w.isClosing?' 🔒':'')+
+          (w.note?' <span style="color:var(--txt2);font-weight:400;font-size:12px">· '+w.note+'</span>':'')+
+        '</span>'+
+        '<span class="wc-len">'+displayLen+' cm'+(i>0&&!w.isClosing?' / '+w.angle+'°':'')+' </span>'+
+      '</div>'+
+      (opens||wrks?'<div style="margin-top:2px">'+opens+wrks+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+// ── SVG render ────────────────────────────────────────────────
+function render(){
+  drawGroup.innerHTML='';
+  if(!walls.length) return;
+  const pts=buildPoints();
+
+  // Gap dashed line
+  const lastWall=walls[walls.length-1];
+  if(!lastWall.isClosing){
+    const lp=pts[pts.length-1];
+    if(Math.sqrt(lp.x*lp.x+lp.y*lp.y)>1){
+      const g=document.createElementNS("http://www.w3.org/2000/svg","line");
+      g.setAttribute("x1",lp.x);g.setAttribute("y1",lp.y);g.setAttribute("x2",0);g.setAttribute("y2",0);
+      g.setAttribute("style","stroke:#f39c12;stroke-width:2;stroke-dasharray:12,8;opacity:.55;");
+      drawGroup.appendChild(g);
+    }
+  }
+
+  walls.forEach((w,i)=>{
+    const p1=pts[i],p2=pts[i+1];
+    const dx=p2.x-p1.x,dy=p2.y-p1.y;
+    const len=Math.sqrt(dx*dx+dy*dy)||1;
+    const ux=dx/len,uy=dy/len;
+    const isC=w.isClosing;
+
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",p1.x);line.setAttribute("y1",p1.y);
+    line.setAttribute("x2",p2.x);line.setAttribute("y2",p2.y);
+    line.setAttribute("style",'stroke:'+(isC?'#2ecc71':'#222')+';stroke-width:'+(isC?'2.5':'3')+';'+(isC?'stroke-dasharray:14,6;':''));
+    drawGroup.appendChild(line);
+
+    const lbl=String.fromCharCode(65+i);
+    const rLen=isC?Math.round(len*10)/10:w.length;
+    const txt=document.createElementNS("http://www.w3.org/2000/svg","text");
+    txt.setAttribute("x",(p1.x+p2.x)/2);txt.setAttribute("y",(p1.y+p2.y)/2-12);
+    txt.setAttribute("style",'fill:'+(isC?'#2ecc71':'#111')+';font-size:13px;font-weight:700;text-anchor:middle;');
+    txt.textContent=lbl+': '+rLen+'cm'+(isC?' ✓':'');
+    drawGroup.appendChild(txt);
+
+    w.openings.forEach(o=>{
+      const ox1=p1.x+ux*o.off,oy1=p1.y+uy*o.off;
+      const ox2=p1.x+ux*(o.off+o.w),oy2=p1.y+uy*(o.off+o.w);
+      const col=o.type==='window'?'#2980b9':'#e74c3c';
+      const op=document.createElementNS("http://www.w3.org/2000/svg","line");
+      op.setAttribute("x1",ox1);op.setAttribute("y1",oy1);
+      op.setAttribute("x2",ox2);op.setAttribute("y2",oy2);
+      op.setAttribute("style","stroke:"+col+";stroke-width:7;stroke-linecap:round;");
+      drawGroup.appendChild(op);
+    });
+  });
+
+  pts.forEach(p=>{
+    const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx",p.x);c.setAttribute("cy",p.y);c.setAttribute("r","5");c.setAttribute("fill","#333");
+    drawGroup.appendChild(c);
+  });
+  // Start marker
+  const sm=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  sm.setAttribute("cx",0);sm.setAttribute("cy",0);sm.setAttribute("r","9");
+  sm.setAttribute("fill","none");sm.setAttribute("stroke","#e74c3c");sm.setAttribute("stroke-width","2.5");
+  drawGroup.appendChild(sm);
+
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  svgEl.setAttribute("viewBox",
+    (Math.min(...xs)-80)+' '+(Math.min(...ys)-80)+' '+
+    (Math.max(...xs)-Math.min(...xs)+160)+' '+
+    (Math.max(...ys)-Math.min(...ys)+160));
+}
+
+// ── Calculate ─────────────────────────────────────────────────
+function calculateAll(){
+  if(!walls.length) return alert('Dodaj co najmniej jedną ścianę');
+  const rH=parseFloat(document.getElementById('h').value);
+  if(!rH||rH<=0) return alert('Podaj poprawną wysokość');
+
+  const pts=buildPoints();
+  let perimeter=0,openingsArea=0,totalSlopesMb=0,totalSlopesCost=0;
+  walls.forEach((w,i)=>{
+    const rL=w.isClosing?Math.sqrt((pts[i+1].x-pts[i].x)**2+(pts[i+1].y-pts[i].y)**2):w.length;
+    perimeter+=rL;
+    w.openings.forEach(o=>{
+      openingsArea+=o.w*o.h;
+      const mb=slopeLengthM(o);
+      totalSlopesMb+=mb;totalSlopesCost+=mb*(o.slopePrice||0);
+    });
+  });
+
+  const floorM2=(shoelaceArea(pts)/10000).toFixed(2);
+  const wallNetM2=((perimeter*rH-openingsArea)/10000).toFixed(2);
+  const perimM=(perimeter/100).toFixed(2);
+  const{inner,outer}=countCorners();
+  const innerMb=(inner*rH/100).toFixed(2);
+  const outerMb=(outer*rH/100).toFixed(2);
+
+  // Slope rows
+  let slopeRows='';
+  walls.forEach((w,i)=>{
+    w.openings.filter(o=>o.depth>0).forEach(o=>{
+      const mb=slopeLengthM(o).toFixed(2);
+      const lbl=String.fromCharCode(65+i);
+      const cost=(slopeLengthM(o)*(o.slopePrice||0)).toFixed(2);
+      slopeRows+='<div class="ri"><span>'+(TYPE_ICON[o.type]||'')+' Ściana '+lbl+' '+o.w+'×'+o.h+'cm, zagł.'+o.depth+'cm'+(o.note?' — '+o.note:'')+'<br><small style="color:#555">'+
+        '2 boki '+(2*o.h/100).toFixed(2)+'mb + góra '+(o.w/100).toFixed(2)+'mb'+(o.b>0?' + parapet '+(o.w/100).toFixed(2)+'mb':'')+
+        (o.slopePrice?' | '+o.slopePrice+' zł/mb':'')+
+        '</small></span><b>'+mb+' mb'+(parseFloat(cost)>0?'<br>'+cost+' zł':'')+' </b></div>';
+    });
+  });
+
+  // Wall works
+  let wallWR='',wallWT=0;
+  walls.forEach((w,i)=>{
+    if(!w.works.length) return;
+    const lbl=String.fromCharCode(65+i);
+    const rL=w.isClosing?Math.sqrt((pts[i+1].x-pts[i].x)**2+(pts[i+1].y-pts[i].y)**2):w.length;
+    const wNA=(rL*rH-w.openings.reduce((s,o)=>s+o.w*o.h,0))/10000;
+    w.works.forEach(wr=>{
+      const sum=(wNA*wr.price).toFixed(2);wallWT+=parseFloat(sum);
+      wallWR+='<div class="ri"><span>Ściana '+lbl+': '+wr.name+'</span><b>'+wr.price+' zł/m² × '+wNA.toFixed(2)+' m²<br>= '+sum+' zł</b></div>';
+    });
+  });
+
+  // Floor & ceil works
+  let flWR='',flWT=0;
+  floorWorks.forEach(wr=>{const s=(parseFloat(floorM2)*wr.price).toFixed(2);flWT+=parseFloat(s);flWR+='<div class="ri"><span>'+wr.name+'</span><b>'+wr.price+' zł/m² × '+floorM2+' m²<br>= '+s+' zł</b></div>';});
+  let clWR='',clWT=0;
+  ceilWorks.forEach(wr=>{const s=(parseFloat(floorM2)*wr.price).toFixed(2);clWT+=parseFloat(s);clWR+='<div class="ri"><span>'+wr.name+'</span><b>'+wr.price+' zł/m² × '+floorM2+' m²<br>= '+s+' zł</b></div>';});
+
+  const grandTotal=(wallWT+flWT+clWT+totalSlopesCost).toFixed(2);
+
+  let html=
+    '<div class="rs">📏 Wymiary</div>'+
+    '<div class="ri"><span>Wysokość pomieszczenia</span><b>'+rH+' cm</b></div>'+
+    '<div class="ri"><span>Powierzchnia podłogi</span><b>'+floorM2+' m²</b></div>'+
+    '<div class="ri"><span>Powierzchnia sufitu</span><b>'+floorM2+' m²</b></div>'+
+    '<div class="ri"><span>Powierzchnia ścian netto</span><b>'+wallNetM2+' m²</b></div>'+
+    '<div class="ri"><span>Łączna długość ścian</span><b>'+perimM+' mb</b></div>'+
+    '<div class="ri"><span style="color:#555">Powierzchnia otworów (odjęta)</span><span style="color:#555">'+(openingsArea/10000).toFixed(2)+' m²</span></div>'+
+    '<div class="rs">📐 Narożniki</div>'+
+    '<div class="ri"><span>Narożniki wewnętrzne ('+inner+' szt.)</span><b>'+innerMb+' mb</b></div>'+
+    '<div class="ri"><span>Narożniki zewnętrzne ('+outer+' szt.)</span><b>'+outerMb+' mb</b></div>';
+
+  if(totalSlopesMb>0){
+    html+='<div class="rs">🪟 Ościeża</div>'+
+      '<div class="ri"><span>Łączna długość ościeży</span><b>'+totalSlopesMb.toFixed(2)+' mb</b></div>'+slopeRows;
+    if(totalSlopesCost>0) html+='<div class="ri"><span>Koszt obróbki ościeży</span><b style="color:var(--green)">'+totalSlopesCost.toFixed(2)+' zł</b></div>';
+  }
+  if(wallWR) html+='<div class="rs">🧱 Prace — ściany</div>'+wallWR+'<div class="ri"><span>Suma ściany</span><b>'+wallWT.toFixed(2)+' zł</b></div>';
+  if(flWR)   html+='<div class="rs">🟫 Prace — podłoga</div>'+flWR+'<div class="ri"><span>Suma podłoga</span><b>'+flWT.toFixed(2)+' zł</b></div>';
+  if(clWR)   html+='<div class="rs">⬜ Prace — sufit</div>'+clWR+'<div class="ri"><span>Suma sufit</span><b>'+clWT.toFixed(2)+' zł</b></div>';
+  if(parseFloat(grandTotal)>0)
+    html+='<div class="total-row"><span style="font-size:16px;font-weight:800">ŁĄCZNIE</span><span style="font-size:20px;font-weight:900;color:var(--green)">'+grandTotal+' zł</span></div>';
+
+  document.getElementById('res-content').innerHTML=html;
+  document.getElementById('resTitle').textContent=document.getElementById('roomName').value;
+  document.getElementById('results-modal').style.display='flex';
+}
+
+// ── PDF ───────────────────────────────────────────────────────
+async function exportPDF(){
+  const{jsPDF}=window.jspdf;
+  const box=document.getElementById('pdf-render-box');
+  const name=document.getElementById('roomName').value;
+  document.getElementById('p-title').textContent=name;
+  document.getElementById('p-subtitle').textContent=new Date().toLocaleDateString('pl-PL');
+  document.getElementById('p-data-slot').innerHTML=
+    document.getElementById('res-content').innerHTML.replace(/\bri\b/g,'pdf-row').replace(/\brs\b/g,'pdf-section');
+
+  const svgData=new XMLSerializer().serializeToString(svgEl);
+  const blob=new Blob([svgData],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=async function(){
+    const canvas=document.createElement("canvas");
+    canvas.width=700;canvas.height=420;
+    const ctx=canvas.getContext("2d");
+    ctx.fillStyle="#fff";ctx.fillRect(0,0,700,420);
+    const vb=svgEl.viewBox.baseVal;
+    if(vb.width>0&&vb.height>0){
+      const pad=24,scale=Math.min((700-pad*2)/vb.width,(420-pad*2)/vb.height);
+      const dw=vb.width*scale,dh=vb.height*scale;
+      ctx.drawImage(img,(700-dw)/2,(420-dh)/2,dw,dh);
+    }
+    document.getElementById('p-canvas-slot').innerHTML='';
+    document.getElementById('p-canvas-slot').appendChild(canvas);
+    box.style.left="0px";
+    const capture=await html2canvas(box,{scale:2,useCORS:true});
+    const pdf=new jsPDF('p','mm','a4');
+    const pw=210,ph=(capture.height*pw)/capture.width;
+    pdf.addImage(capture.toDataURL('image/png'),'PNG',0,0,pw,Math.min(ph,297));
+    pdf.save(name+".pdf");
+    box.style.left="-9999px";
+    URL.revokeObjectURL(url);
+  };
+  img.onerror=()=>{alert('Błąd renderowania schematu');URL.revokeObjectURL(url);};
+  img.src=url;
+}
+</script>
+</body>
+</html>
