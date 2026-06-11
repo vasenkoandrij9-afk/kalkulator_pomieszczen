@@ -246,9 +246,9 @@ button:active{filter:brightness(.82);transform:scale(.97)}
 #fab:active{filter:brightness(.85);transform:scale(.96)}
 
 /* PDF hidden */
-#pdf-render-box{position:fixed;left:-9999px;width:780px;background:#fff;color:#111;padding:40px;font-family:system-ui,sans-serif}
-.pdf-row{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:7px 0;font-size:14px;gap:8px;flex-wrap:wrap}
-.pdf-section{font-size:11px;text-transform:uppercase;color:#666;letter-spacing:.05em;padding-top:10px;padding-bottom:2px;font-weight:700}
+#pdf-render-box{position:fixed;left:-9999px;width:780px;background:#fff;color:#111;padding:28px 36px;font-family:system-ui,sans-serif}
+.pdf-row{display:flex;justify-content:space-between;border-bottom:1px solid #eee;padding:4px 0;font-size:11px;gap:6px;flex-wrap:wrap}
+.pdf-section{font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.05em;padding-top:7px;padding-bottom:1px;font-weight:700}
 
 /* Divider */
 .divider{height:1px;background:var(--border);margin:2px 0}
@@ -290,7 +290,6 @@ button:active{filter:brightness(.82);transform:scale(.97)}
   <button id="btn-rename-room" onclick="renameCurrentRoom()" title="Zmień nazwę">✏️</button>
   <button id="btn-delete-room" onclick="deleteCurrentRoom()" title="Usuń pokój">🗑</button>
   <button id="btn-project-pdf" onclick="exportProjectPDF()">📄 PDF</button>
-  <button onclick="showProjectSummary()" style="flex-shrink:0;padding:8px 10px;font-size:11px;font-weight:700;background:rgba(97,218,251,.15);color:var(--a);border:1.5px solid rgba(97,218,251,.3);border-radius:8px;cursor:pointer;white-space:nowrap">📋 Zestawienie</button>
 </div>
 
 <!-- SCREENS -->
@@ -2628,6 +2627,33 @@ async function exportProjectPDF(){
   loadRoom();
   renderRoomTabs();
   persistProject();
+
+  // ── Last page: Zestawienie projektu ────────────────────────
+  addPDFPage();
+  const box2=document.getElementById('pdf-render-box');
+  document.getElementById('p-title').textContent = projName + ' — Zestawienie prac';
+  document.getElementById('p-subtitle').textContent = 'Łączne zestawienie wszystkich prac we wszystkich pomieszczeniach | '+date;
+  // Build summary HTML using pdf-row classes
+  const sumHtml = buildProjectSummary()
+    .replace(/\bri\b/g,'pdf-row')
+    .replace(/\brs\b/g,'pdf-section')
+    .replace(/color:var\(--txt\)/g,'color:#111')
+    .replace(/color:var\(--txt2\)/g,'color:#666')
+    .replace(/color:var\(--a\)/g,'color:#0288d1')
+    .replace(/color:var\(--green\)/g,'color:#27ae60')
+    .replace(/background:rgba\([^)]+\)/g,'background:#f9f9f9')
+    .replace(/border:[^;]*rgba\([^)]+\)[^;]*/g,'border:1px solid #ddd');
+  document.getElementById('p-data-slot').innerHTML = sumHtml;
+  document.getElementById('p-canvas-slot').innerHTML = '';
+  box2.style.left='0px';
+  const capSum=await html2canvas(box2,{scale:2,useCORS:true,backgroundColor:'#ffffff'});
+  box2.style.left='-9999px';
+  const capSumH=(capSum.height*pw)/capSum.width;
+  const sumPages=Math.ceil(capSumH/ph);
+  for(let p=0;p<sumPages;p++){
+    if(p>0) addPDFPage();
+    pdf.addImage(capSum.toDataURL('image/png'),'PNG',0,-p*ph,pw,capSumH);
+  }
 
   pdf.save(projName+'.pdf');
 }
